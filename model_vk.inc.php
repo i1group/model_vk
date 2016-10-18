@@ -38,31 +38,31 @@ class model_vk {
         }
         return false;
     }
-		
-		/**
-		 * Загрузить фотографию на серверв вконтакта.
-		 * @param str $url  - урл сервера, на который загружать.
-		 * @param str $file - адрес фотографии.
-		 * @param bool $add_cwd - true: добавить к пути фотографии текущий рабочий каталог (по-умолчанию: false).
-		 * @return str ответ от вконтакта в формате json.
-		 */
-		public function upload_photo ($url, $file, $add_cwd=false) {
-			if ($add_cwd)
-				$file = getcwd().'/'.$file;
-			
-			$ch = curl_init($url);
-			curl_setopt($ch, CURLOPT_HEADER, false);
-			curl_setopt($ch, CURLOPT_POST, true);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, array('photo' => '@'.$file));
-			$res = curl_exec($ch);
-			curl_close($ch);
-			
-			if ($res)
-				$res = json_decode($res);
-			
-			return $res;
-		}
+
+	/**
+	 * Загрузить фотографию на серверв вконтакта.
+	 * @param str $url  - урл сервера, на который загружать.
+	 * @param str $file - адрес фотографии.
+	 * @param bool $add_cwd - true: добавить к пути фотографии текущий рабочий каталог (по-умолчанию: false).
+	 * @return str ответ от вконтакта в формате json.
+	 */
+	public function upload_photo ($url, $file, $add_cwd=false) {
+		if ($add_cwd)
+			$file = getcwd().'/'.$file;
+
+		$ch = curl_init($url);
+		curl_setopt($ch, CURLOPT_HEADER, false);
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, array('photo' => '@'.$file));
+		$res = curl_exec($ch);
+		curl_close($ch);
+
+		if ($res)
+			$res = json_decode($res);
+
+		return $res;
+	}
 		
 		/**
 		 * Загрузить фотографию на стену пользователя/группы.
@@ -98,67 +98,67 @@ class model_vk {
 		 * Разместить запись на стене пользователя/группы.
 		 * @param int $owner_id   - id пользователя/группы.
 		 * @param str $message    - текст записи.
-		 * @param arr $images     - массив с адресами фотографий.
-		 * @param int $time       - время публикации записи.
+		 * @param arr $images     - массив с адресами фотографий (по-умолчанию: нет).
+		 * @param int $time       - время публикации записи. Если не задано - берётся текущее (по-умолчанию: нет).
 		 * @param int $from_group - 1: опубликовать от имени группы, 0: от своего.
 		 *                          Только для группы (по-умолчанию: 1).
-		 * @param arr $del_links  - удалять ссылки из текста:
-		 *                          2 - оставить только внутренние ссылки вконтакта,
-		 *                          1 - обрезать все ссылки,
-		 *                          0 - оставить все ссылки (по-умолчанию).
-		 * @return str ответ от вконтакта в формате json.
-		 */
-		public function wall_post ($owner_id, $message, $images=null, $time=0, $from_group=1, $del_links=0) {
-			if (!$owner_id)
-				return false;
-		
-			//загружаем картинки
-			$attach = array();
-			foreach ($images as $img) {
-				$img = $this->save_photo_to_wall(substr($owner_id, 0, 1) == "-" ? "gid" : "uid", $owner_id, $img);
-				if ($img)
-					$attach[] = $img->response[0]->id;
-				usleep($this->pause);
-			}
-			//обрезаем ссылки
-			if ($del_links == 1)
-				$message = preg_replace("!((https|http|ftp):\/\/)?(www\.)?([a-zA-Z0-9-а-яА-Я]*[\.])?[a-zA-Z0-9-а-яА-Я]*[\.]+[a-zA-Zа-яА-Я]{2,4}([\/a-zA-Z0-9-а-яА-Я])*!mi", "", $message);
-			else if ($del_links == 2)  //оставляем только ссылки вконтакта
-				$message = preg_replace("!((https|http|ftp):\/\/)?(www\.)?(vk\.com|vkontakte\.ru)([\/a-zA-Z0-9-а-яА-Я])*!mi", "", $message);
-			//публикуем на стене запись
-			$params = array(
-				"owner_id"    => $owner_id,
-				"message"     => $message,
-				"attachments" => count($attach) ? implode(",", $attach) : "",
-				"from_group"  => $from_group,
-			);
-			if ($time)
-				$params["publish_date"] = $time;
-			//echo "<pre>params=".print_r($params, 1).".</pre>";
-			
-			return $this->method("wall.post", $params);
-		}
+	 * @param arr $del_links  - удалять ссылки из текста:
+	 *                          2 - оставить только внутренние ссылки вконтакта,
+	 *                          1 - обрезать все ссылки,
+	 *                          0 - оставить все ссылки (по-умолчанию).
+	 * @return str ответ от вконтакта в формате json.
+	 */
+	public function wall_post ($owner_id, $message, $images=null, $time=0, $from_group=1, $del_links=0) {
+		if (!$owner_id)
+			return false;
 
-		/**
-		 * Разместить комментарий к записи на стене.
-		 * @param int $owner_id   - id пользователя/группы.
-		 * @param int $post_id    - id записи.
-		 * @param str $message    - текст комментария.
-		 * @param int $from_group - 1: опубликовать от имени группы, 0: от своего.
-		 *                          Только для группы (по-умолчанию: 1).
-		 * @return str ответ от вконтакта в формате json.
-		 */
-		public function wall_add_comment ($owner_id, $post_id, $message, $from_group=1) {
-			if (!$owner_id || !$post_id)
-				return false;
-		
-			$params = array(
-				"owner_id"   => $owner_id,
-				"post_id"    => $post_id,
-				"text"       => $message,
-				"from_group" => $from_group,
-			);
-			
-			return $this->method("wall.addComment", $params);
+		//загружаем картинки
+		$attach = array();
+		foreach ($images as $img) {
+			$img = $this->save_photo_to_wall(substr($owner_id, 0, 1) == "-" ? "gid" : "uid", $owner_id, $img);
+			if ($img)
+				$attach[] = $img->response[0]->id;
+			usleep($this->pause);
 		}
+		//обрезаем ссылки
+		if ($del_links == 1)
+			$message = preg_replace("!((https|http|ftp):\/\/)?(www\.)?([a-zA-Z0-9-а-яА-Я]*[\.])?[a-zA-Z0-9-а-яА-Я]*[\.]+[a-zA-Zа-яА-Я]{2,4}([\/a-zA-Z0-9-а-яА-Я])*!mi", "", $message);
+		else if ($del_links == 2)  //оставляем только ссылки вконтакта
+			$message = preg_replace("!((https|http|ftp):\/\/)?(www\.)?(vk\.com|vkontakte\.ru)([\/a-zA-Z0-9-а-яА-Я])*!mi", "", $message);
+		//публикуем на стене запись
+		$params = array(
+			"owner_id"    => $owner_id,
+			"message"     => $message,
+			"attachments" => count($attach) ? implode(",", $attach) : "",
+			"from_group"  => $from_group,
+		);
+		if ($time)
+			$params["publish_date"] = $time;
+		//echo "<pre>params=".print_r($params, 1).".</pre>";
+
+		return $this->method("wall.post", $params);
+	}
+
+	/**
+	 * Разместить комментарий к записи на стене.
+	 * @param int $owner_id   - id пользователя/группы.
+	 * @param int $post_id    - id записи.
+	 * @param str $message    - текст комментария.
+	 * @param int $from_group - 1: опубликовать от имени группы, 0: от своего.
+	 *                          Только для группы (по-умолчанию: 1).
+	 * @return str ответ от вконтакта в формате json.
+	 */
+	public function wall_add_comment ($owner_id, $post_id, $message, $from_group=1) {
+		if (!$owner_id || !$post_id)
+			return false;
+
+		$params = array(
+			"owner_id"   => $owner_id,
+			"post_id"    => $post_id,
+			"text"       => $message,
+			"from_group" => $from_group,
+		);
+
+		return $this->method("wall.addComment", $params);
+	}
 }
