@@ -8,4 +8,5 @@
 
 ### Пример использования
 $vk = new model_vk($my_token);
+
 $vk->wall_post($my_group_id, $text);
